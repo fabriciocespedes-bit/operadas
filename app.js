@@ -633,17 +633,25 @@ V("El cumplimiento", () => {
 
   /* ── lo que separa del tramo 2 ───────────────────────────────────────── */
   if (brecha > 0 && barata) {
+    const sinM8 = UMBRAL - R.evaluables;
     f.appendChild(nodo(`<div class="aviso a-oro">
-      <strong>Si la meta 8 cierra, faltan ${N2(brecha*100)} puntos para el
-      Tramo 2.</strong> Esa distancia se cubre con <b>${N(barata.casos)}
+      <strong>El umbral que paga está a ${N2(sinM8*100)} puntos hoy, o a
+      ${N2(brecha*100)} si la meta 8 cierra.</strong>
+      Esa segunda distancia es tan corta que la cubren <b>${N(barata.casos)}
       ${barata.casos === 1 ? "caso" : "casos"}</b> de la meta ${barata.id},
-      ${barata.nombre.toLowerCase()}, donde todavía quedan ${N(barata.falta)}
-      por recuperar. Es la meta con el denominador más chico de todas
-      —solo ${N(barata.den)} casos— y por eso cada uno vale
-      ${N2(barata.por_caso*100)} puntos, unas cien veces más que un caso de las
-      metas de volumen. No es una buena noticia sobre la gestión: es una
-      advertencia sobre la fragilidad del resultado, porque la misma aritmética
-      opera en contra si se pierden tres casos.</div>`));
+      donde todavía quedan ${N(barata.falta)} por recuperar: con un denominador
+      de solo ${N(barata.den)}, cada caso vale ${N2(barata.por_caso*100)} puntos,
+      unas cien veces más que uno de las metas de volumen.
+      <br><br>
+      Eso no significa que el tramo esté ganado, y conviene leerlo al revés:
+      <b>la misma aritmética opera en contra si se pierden esos casos.</b> El
+      resultado no es sólido, es angosto.
+      <br><br>
+      <span class="l">La ruta realista —cerrar la meta 8 y completar las dos
+      odontológicas, que llegan a 77,70%— está desarrollada en el informe
+      «Programación Operativa 2026», que además contrasta lo que falta con lo
+      que cada meta viene produciendo al mes. Acá se muestra la aritmética; allá,
+      la factibilidad.</span></div>`));
   }
 
   /* ── aporte contra ponderación ───────────────────────────────────────── */
