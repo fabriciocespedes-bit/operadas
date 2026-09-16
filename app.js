@@ -96,9 +96,14 @@ function ejeBonito(max, n){
 }
 
 function barrasH(cfg){
-  const d = cfg.datos, filaH = cfg.filaH||26, etA = cfg.etAncho||96;
-  const w = cfg.ancho||780, h = d.length*filaH + 34;
-  const ml = etA+8, mr = 62, aw = w-ml-mr;
+  /* en pantallas angostas el viewBox se escala tanto que el texto queda
+     ilegible; ahi se achica la caja y se recorta la etiqueta */
+  const angosto = innerWidth < 700;
+  const d = cfg.datos, filaH = cfg.filaH||26;
+  const etA = angosto ? Math.min(cfg.etAncho||96, 104) : (cfg.etAncho||96);
+  const w = angosto ? 430 : (cfg.ancho||780), h = d.length*filaH + 34;
+  const ml = etA+8, mr = angosto ? 50 : 62, aw = w-ml-mr;
+  const recorta = t => (angosto && t.length > 14) ? t.slice(0,13) + "…" : t;
   const svg = el("svg",{class:"chart", viewBox:`0 0 ${w} ${h}`, role:"img",
                         "aria-label":cfg.etiqueta||"gráfico"});
   const max = cfg.max != null ? cfg.max
@@ -106,7 +111,7 @@ function barrasH(cfg){
   d.forEach((r,i) => {
     const y = i*filaH + 6, bh = filaH-11;
     const t = el("text",{x:etA, y:y+bh/2+4, "text-anchor":"end", class:"ax"});
-    t.textContent = r.et; svg.appendChild(t);
+    t.textContent = recorta(r.et); svg.appendChild(t);
     const bw = Math.max(2, Math.abs(r.val)/max*aw);
     const g = el("g",{class:"mark"});
     g.appendChild(el("rect",{x:ml, y:y, width:bw, height:bh, rx:3,
