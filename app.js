@@ -584,7 +584,9 @@ V("El cumplimiento", () => {
 
   /* ── el termómetro de tramos ─────────────────────────────────────────── */
   const term = (() => {
-    const w = 820, h = 124, ml = 24, mr = 24, aw = w - ml - mr, yb = 46, hb = 26;
+    const estrecho = innerWidth < 700;
+    const w = estrecho ? 430 : 820, h = estrecho ? 132 : 124,
+          ml = 24, mr = 24, aw = w - ml - mr, yb = 46, hb = 26;
     const svg = el("svg", {class:"chart", viewBox:`0 0 ${w} ${h}`, role:"img",
       "aria-label":"Escala de tramos de la Ley 19.813 y posición del avance"});
     const bandas = [
@@ -643,7 +645,12 @@ V("El cumplimiento", () => {
   const chart = (() => {
     const d = K.metas.slice().sort((a,b) => b.pond - a.pond ||
                                             (b.aporte||0) - (a.aporte||0));
-    const filaH = 28, etA = 250, w = 860, mr = 78;
+    /* en pantallas angostas el viewBox se escala tanto que el texto queda
+       ilegible: ahí se usa una caja más chica y la etiqueta se acorta */
+    const angosto = innerWidth < 700;
+    const corte = angosto ? 16 : 34;
+    const filaH = 28, etA = angosto ? 112 : 250,
+          w = angosto ? 430 : 860, mr = angosto ? 52 : 78;
     const h = d.length*filaH + 30, ml = etA + 8, aw = w - ml - mr;
     const max = 0.125;
     const svg = el("svg",{class:"chart", viewBox:`0 0 ${w} ${h}`, role:"img",
@@ -651,8 +658,8 @@ V("El cumplimiento", () => {
     d.forEach((m,i) => {
       const y = i*filaH + 6, bh = filaH - 12;
       const t = el("text",{x:etA, y:y+bh/2+4, "text-anchor":"end", class:"ax"});
-      t.textContent = `${m.id} · ${m.nombre.length > 34
-        ? m.nombre.slice(0,33) + "…" : m.nombre}`;
+      t.textContent = `${m.id} · ${m.nombre.length > corte
+        ? m.nombre.slice(0, corte-1) + "…" : m.nombre}`;
       svg.appendChild(t);
       const gm = el("g",{class:"mark"});
       /* el techo: la ponderación completa */
