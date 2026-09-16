@@ -21,7 +21,7 @@ programado  →  agendado  →  quién no llegó  →  capacidad  →  brecha
 Y agrega la dimensión que ninguna herramienta de programación calcula: **cuánto
 cuesta cada hora**, al valor efectivamente pagado por estamento.
 
-## Las cuatro vistas
+## Las cinco vistas
 
 **La cadena.** Para cada estamento, el recorrido completo desde las líneas de
 programación hasta la brecha resultante, con el costo de cada eslabón.
@@ -35,6 +35,14 @@ ellos es una decisión de método que corresponde al Departamento.
 
 **La agenda.** Cupos ofrecidos, citas, inasistencia, sobrecupos y bloqueos, por
 estamento.
+
+**El cumplimiento.** Las diez metas de la Ley 19.813 y los veinte indicadores
+IAAPS, cada uno con su propio corte: las metas que se nutren del REM serie P van
+a junio porque ese registro es semestral, y las de la serie A acumulan hasta
+agosto. Incluye la escala de tramos, la distancia al tramo que paga traducida a
+casos concretos, y los cortes no lineales del IAAPS —30% en mayo, 50% en julio,
+70% en septiembre, 100% en diciembre—, que permiten ir "al día" en un mes y
+fallar el corte del siguiente.
 
 ## Fuentes
 
