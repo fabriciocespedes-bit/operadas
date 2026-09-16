@@ -547,6 +547,222 @@ V("La agenda", () => {
   return f;
 });
 
+/* ── 5 · el cumplimiento ───────────────────────────────────────────────── */
+V("El cumplimiento", () => {
+  const f = document.createDocumentFragment();
+  const K = D.cumplimiento, R = K.metas_resumen, I = K.iaaps;
+  const UMBRAL = 0.75;                      /* el tramo que empieza a pagar */
+  const brecha = UMBRAL - R.con_meta8;
+
+  /* metas que todavía pueden crecer, ordenadas por lo que rinde cada caso */
+  const movibles = K.metas
+    .filter(m => !m.binaria && m.por_caso && m.rel < 1)
+    .map(m => Object.assign({}, m, {
+      techo: m.pond - m.aporte,
+      casos: Math.ceil(brecha / m.por_caso)
+    }))
+    .sort((a,b) => b.por_caso - a.por_caso);
+  const barata = movibles.find(m => m.casos <= m.falta);
+
+  f.appendChild(nodo(`<div class="enc">
+    <h2>Dónde está el cumplimiento, y qué lo separa del tramo que paga</h2>
+    <p>Las metas que se nutren del REM serie P están cortadas a junio, porque
+    ese registro es semestral. Las que se nutren de la serie A acumulan mes a
+    mes y llegan a ${R.corte}. Mezclar ambos cortes en un solo número sería
+    cómodo y falso; acá cada meta declara el suyo.</p></div>`));
+
+  const g = nodo(`<div class="grid g4"></div>`);
+  g.appendChild(kpi("Avance de las nueve evaluables", P1(R.evaluables),
+    "Suma de aportes, cada meta topada en su ponderación", "ambar"));
+  g.appendChild(kpi("Si la meta 8 cierra", P1(R.con_meta8),
+    `Le suma sus ${P1(R.pond8)} completos, o nada`, "oro"));
+  g.appendChild(kpi("Tramo actual", "3",
+    "No se paga el componente variable", "rojo"));
+  g.appendChild(kpi("Meses para corregir", R.meses_restantes,
+    "El cierre es en diciembre", "inst"));
+  f.appendChild(g);
+
+  /* ── el termómetro de tramos ─────────────────────────────────────────── */
+  const term = (() => {
+    const w = 820, h = 124, ml = 24, mr = 24, aw = w - ml - mr, yb = 46, hb = 26;
+    const svg = el("svg", {class:"chart", viewBox:`0 0 ${w} ${h}`, role:"img",
+      "aria-label":"Escala de tramos de la Ley 19.813 y posición del avance"});
+    const bandas = [
+      {a:0,    b:0.75, c:"#fee2e2", t:"Tramo 3 · no paga"},
+      {a:0.75, b:0.90, c:"#fef3c7", t:"Tramo 2 · paga 50%"},
+      {a:0.90, b:1.00, c:"#dcfce7", t:"Tramo 1 · paga 100%"}
+    ];
+    bandas.forEach((z,i) => {
+      const x = ml + z.a*aw, bw = (z.b-z.a)*aw;
+      svg.appendChild(el("rect",{x, y:yb, width:bw, height:hb, fill:z.c}));
+      /* las bandas angostas de la derecha no caben en una sola fila */
+      const t = el("text",{x:x+bw/2, y:yb+hb+(i%2 ? 38 : 20), class:"ax",
+                           "text-anchor":"middle"});
+      t.textContent = z.t; svg.appendChild(t);
+    });
+    [[0.75,"75%"],[0.90,"90%"]].forEach(([p,r]) => {
+      const x = ml + p*aw;
+      svg.appendChild(el("line",{x1:x, y1:yb-4, x2:x, y2:yb+hb+2, class:"ref"}));
+      const t = el("text",{x, y:yb-18, class:"ax", "text-anchor":"middle"});
+      t.textContent = r; svg.appendChild(t);
+    });
+    const marca = (p, color, rot, dy) => {
+      const x = ml + p*aw;
+      const gm = el("g",{class:"mark"});
+      gm.appendChild(el("circle",{cx:x, cy:yb+hb/2, r:6, fill:color,
+                                  stroke:"#fff", "stroke-width":2}));
+      const t = el("text",{x, y:yb+hb/2+dy, class:"ax", fill:color,
+                           "text-anchor":"middle", "font-weight":"700"});
+      t.textContent = rot; gm.appendChild(t);
+      svg.appendChild(gm);
+    };
+    marca(R.evaluables, C.rojo, P1(R.evaluables)+" hoy", -15);
+    marca(R.con_meta8,  "#7a5c00", P1(R.con_meta8)+" con meta 8", 29);
+    return svg;
+  })();
+  f.appendChild(card("La escala de la Ley 19.813",
+    "El pago no es proporcional: son tres escalones y el primero se alcanza en 75%.",
+    term));
+
+  /* ── lo que separa del tramo 2 ───────────────────────────────────────── */
+  if (brecha > 0 && barata) {
+    f.appendChild(nodo(`<div class="aviso a-oro">
+      <strong>Si la meta 8 cierra, faltan ${N2(brecha*100)} puntos para el
+      Tramo 2.</strong> Esa distancia se cubre con <b>${N(barata.casos)}
+      ${barata.casos === 1 ? "caso" : "casos"}</b> de la meta ${barata.id},
+      ${barata.nombre.toLowerCase()}, donde todavía quedan ${N(barata.falta)}
+      por recuperar. Es la meta con el denominador más chico de todas
+      —solo ${N(barata.den)} casos— y por eso cada uno vale
+      ${N2(barata.por_caso*100)} puntos, unas cien veces más que un caso de las
+      metas de volumen. No es una buena noticia sobre la gestión: es una
+      advertencia sobre la fragilidad del resultado, porque la misma aritmética
+      opera en contra si se pierden tres casos.</div>`));
+  }
+
+  /* ── aporte contra ponderación ───────────────────────────────────────── */
+  const chart = (() => {
+    const d = K.metas.slice().sort((a,b) => b.pond - a.pond ||
+                                            (b.aporte||0) - (a.aporte||0));
+    const filaH = 28, etA = 250, w = 860, mr = 78;
+    const h = d.length*filaH + 30, ml = etA + 8, aw = w - ml - mr;
+    const max = 0.125;
+    const svg = el("svg",{class:"chart", viewBox:`0 0 ${w} ${h}`, role:"img",
+      "aria-label":"Aporte de cada meta contra su ponderación máxima"});
+    d.forEach((m,i) => {
+      const y = i*filaH + 6, bh = filaH - 12;
+      const t = el("text",{x:etA, y:y+bh/2+4, "text-anchor":"end", class:"ax"});
+      t.textContent = `${m.id} · ${m.nombre.length > 34
+        ? m.nombre.slice(0,33) + "…" : m.nombre}`;
+      svg.appendChild(t);
+      const gm = el("g",{class:"mark"});
+      /* el techo: la ponderación completa */
+      gm.appendChild(el("rect",{x:ml, y, width:m.pond/max*aw, height:bh, rx:3,
+                                fill:C.inst200}));
+      /* lo alcanzado */
+      const col = m.binaria ? C.faint
+                : m.rel >= 1 ? C.verde : m.rel >= 0.75 ? C.oro : C.rojo;
+      gm.appendChild(el("rect",{x:ml, y, width:Math.max(1,(m.aporte||0)/max*aw),
+                                height:bh, rx:3, fill:col}));
+      const v = el("text",{x:ml + m.pond/max*aw + 7, y:y+bh/2+4, class:"ax",
+                           fill:col, "font-weight":"600"});
+      v.textContent = m.binaria ? "todo o nada" : P1(m.rel);
+      gm.appendChild(v);
+      conTip(gm, m.binaria
+        ? `<b>Meta ${m.id}</b><br>${m.nombre}<br>
+           <span class="l">Se define a fin de año y es todo o nada.
+           Aporta ${P1(m.pond)} o cero.</span>`
+        : `<b>Meta ${m.id}</b><br>${m.nombre}<br>
+           ${N(m.num)} de ${N(m.den)} · meta comunal ${P1(m.metacom)}<br>
+           avance ${P1(m.avance)} → cumplimiento ${P1(m.rel)}<br>
+           aporta ${P1(m.aporte)} de ${P1(m.pond)}<br>
+           <span class="l">REM serie ${m.serie}, corte ${m.corte}</span>`);
+      svg.appendChild(gm);
+    });
+    return svg;
+  })();
+  f.appendChild(card("Cuánto alcanzó cada meta de su propio techo",
+    "La barra clara es la ponderación completa; la sólida, lo aportado. Ninguna puede pasar de su techo, aunque supere la meta comunal.",
+    chart));
+
+  /* ── detalle ─────────────────────────────────────────────────────────── */
+  f.appendChild(card("Las diez metas en detalle", "",
+    tabla([
+      {t:"Meta", k:"id"}, {t:"Corte", k:"corte"},
+      {t:"Numerador", k:"num", num:true}, {t:"Denominador", k:"den", num:true},
+      {t:"Avance", k:"av", num:true}, {t:"Meta comunal", k:"mc", num:true},
+      {t:"Cumplimiento", k:"rel", num:true}, {t:"Pondera", k:"pond", num:true},
+      {t:"Aporta", k:"ap", num:true}, {t:"Casos que faltan", k:"falta", num:true},
+      {t:"Por mes", k:"mes", num:true}
+    ], K.metas.map(m => ({
+      id:`<div class="anchoNom"><b>${m.id}</b> · ${m.nombre}</div>`,
+      corte:`${m.corte} <span class="l">(serie ${m.serie})</span>`,
+      num:N(m.num), den:N(m.den),
+      av: m.binaria ? "—" : P1(m.avance), mc:P1(m.metacom),
+      rel: m.binaria ? "todo o nada"
+         : m.rel >= 1 ? `<b>${P1(m.rel)}</b> (topado)` : P1(m.rel),
+      pond:P1(m.pond), ap:`<b>${P1(m.aporte)}</b>`,
+      falta: m.binaria ? "—" : (m.falta > 0 ? N(m.falta) : "cumplida"),
+      mes: m.binaria ? "—" : (m.por_mes > 0 ? N(m.por_mes) : "—")
+    })), {nota:`Ninguna meta pondera más de su techo aunque exceda la meta comunal: las metas 4.1 y 6 ya lo alcanzaron y su exceso no se traspasa a las demás. La meta 8 es seguimiento interno, se define a fin de año y es todo o nada. Fuente: ${R.fuente}.`})));
+
+  /* ── IAAPS ───────────────────────────────────────────────────────────── */
+  f.appendChild(nodo(`<div class="enc" style="margin-top:34px">
+    <h2>IAAPS: la otra evaluación, con cortes que no son lineales</h2>
+    <p>Los índices de actividad se miden contra fracciones crecientes de la
+    meta anual: 30% en mayo, 50% en julio, 70% en septiembre y 100% en
+    diciembre. Un indicador puede ir “al día” en agosto y aun así fallar el
+    corte de septiembre, porque el listón sube.</p></div>`));
+
+  /* dos cuentas distintas que no hay que confundir: los que ya fallaron el
+     corte anterior, y los que con el dato de hoy no alcanzan el siguiente */
+  const riesgo = I.filas.filter(r => (r.prox_brecha||0) > 0)
+                        .sort((a,b) => b.prox_brecha - a.prox_brecha);
+  const ultCorte = (I.filas[0]||{}).ultimo_corte || "el corte anterior";
+
+  const gi = nodo(`<div class="grid g4"></div>`);
+  gi.appendChild(kpi("Cumplen la meta anual", `${I.cumplen} de ${I.total}`,
+    `Con el dato acumulado a ${R.corte}`, "inst"));
+  gi.appendChild(kpi("Avance promedio", P1(I.promedio),
+    "Sobre la meta anual, no sobre el corte", "ambar"));
+  gi.appendChild(kpi(`Fallaron el corte de ${ultCorte}`, I.en_riesgo_corte,
+    "Quedaron bajo el listón que ya pasó",
+    I.en_riesgo_corte > 0 ? "rojo" : "verde"));
+  gi.appendChild(kpi(`Llegan corto a ${I.prox_corte}`, riesgo.length,
+    `Ese corte exige ${P0(I.prox_fraccion)} de la meta anual`,
+    riesgo.length > 0 ? "rojo" : "verde"));
+  f.appendChild(gi);
+  if (riesgo.length) {
+    f.appendChild(nodo(`<div class="aviso a-rojo">
+      <strong>${riesgo.length === 1 ? "Un indicador llega" :
+      riesgo.length + " indicadores llegan"} corto al corte de
+      ${I.prox_corte}.</strong> ${riesgo.map(r =>
+      `<b>${r.nombre}</b> necesita ${N(r.prox_brecha)} más`).join("; ")}.
+      El resto del panel IAAPS pasa el corte con el dato de agosto.</div>`));
+  }
+
+  f.appendChild(card("Los veinte indicadores IAAPS", "",
+    tabla([
+      {t:"Indicador", k:"n"}, {t:"Numerador", k:"num", num:true},
+      {t:"Denominador", k:"den", num:true}, {t:"Avance", k:"av", num:true},
+      {t:"Meta anual", k:"meta", num:true},
+      {t:"Cumplimiento", k:"rel", num:true},
+      {t:`Corte ${I.prox_corte}`, k:"corte", num:true},
+      {t:"Falta", k:"falta", num:true}
+    ], I.filas.slice().sort((a,b) => (a.rel||0) - (b.rel||0)).map(r => ({
+      n:`<div class="anchoNom"><b>${r.nombre}</b></div>`,
+      num:N(r.num), den:N(r.den),
+      av: r.tipo === "porcentaje" ? P1(r.avance) : N2(r.avance),
+      meta: r.tipo === "porcentaje" ? P1(r.meta) : N2(r.meta),
+      rel: r.rel >= 1 ? `<b>${P1(r.rel)}</b>` : P1(r.rel),
+      corte: (r.prox_brecha||0) > 0
+        ? `<span class="badge b-rojo">faltan ${N(r.prox_brecha)}</span>`
+        : `<span class="badge b-verde">pasa</span>`,
+      falta: r.falta > 0 ? N(r.falta) : "cumplida"
+    })), {nota:`El cumplimiento se mide contra la meta anual completa; la columna del corte compara contra la fracción exigida en ${I.prox_corte}. Por eso un indicador puede tener cumplimiento bajo y aun así pasar el corte. Fuente: ${I.fuente}.`})));
+
+  return f;
+});
+
 /* ───────────────────────────── navegación ─────────────────────────────── */
 const pest = document.getElementById("pestanas");
 const lienzo = document.getElementById("lienzo");

@@ -235,3 +235,7 @@ tr.tot td{font-weight:700; color:var(--inst-900); background:var(--inst-50);
   border-left:3px solid var(--ambar-bd); padding:8px 11px; border-radius:6px}
 @media(max-width:700px){.ficha-dl{grid-template-columns:1fr; gap:3px 0}
   .ficha-dl dd{margin-bottom:10px}}
+
+/* los nombres largos de metas e indicadores necesitan piso propio;
+   la tabla ya desborda con scroll horizontal si hace falta */
+.anchoNom{min-width:248px}
