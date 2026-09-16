@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OperaDAS · Departamento de Salud Municipal de Pozo Almonte</title>
+<meta name="description" content="La cadena completa de la programación operativa: lo programado, lo agendado, lo atendido, lo que cuesta y lo que falta.">
+<link rel="icon" href="sol-das-mini.png">
+<link rel="preload" href="fuentes/inter-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fuentes/poppins-700.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="estilo.css?v=1789524815">
+</head>
+<body>
+<div class="franja" aria-hidden="true"></div>
+
+<header class="cabecera">
+  <div class="marca">
+    <img src="sol-das.png" alt="">
+    <div>
+      <h1>Opera<span>DAS</span></h1>
+      <p>Departamento de Salud Municipal de Pozo Almonte</p>
+    </div>
+  </div>
+  <nav class="pestanas" id="pestanas" aria-label="Vistas"></nav>
+</header>
+
+<main id="lienzo"></main>
+
+<footer class="pie">
+  <div class="pie-interno">
+    <img src="logo-municipalidad.png" alt="Ilustre Municipalidad de Pozo Almonte">
+    <div id="fuentes"></div>
+  </div>
+</footer>
+
+<div id="tip" role="status" aria-live="polite"></div>
+
+<script src="datos.js?v=1789524783"></script>
+<script src="app.js?v=1789524850"></script>
+</body>
+</html>
