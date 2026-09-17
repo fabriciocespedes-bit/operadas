@@ -21,7 +21,7 @@ programado  →  agendado  →  quién no llegó  →  capacidad  →  brecha
 Y agrega la dimensión que ninguna herramienta de programación calcula: **cuánto
 cuesta cada hora**, al valor efectivamente pagado por estamento.
 
-## Las cinco vistas
+## Las seis vistas
 
 **La cadena.** Para cada estamento, el recorrido completo desde las líneas de
 programación hasta la brecha resultante, con el costo de cada eslabón.
@@ -35,6 +35,13 @@ ellos es una decisión de método que corresponde al Departamento.
 
 **La agenda.** Cupos ofrecidos, citas, inasistencia, sobrecupos y bloqueos, por
 estamento.
+
+**El año.** La estacionalidad medida: cuántas citas, cupos y bloqueos hay mes a
+mes. En Pozo Almonte la demanda sube 23,7% entre mayo y agosto, la oferta sube
+solo 17,7% y los bloqueos suben 39,9%, de modo que el equipo absorbe la
+diferencia con sobrecupo. La orientación técnica trata la estacionalidad como
+contingencia previsible que debe integrarse de forma explícita a la
+programación anual.
 
 **El cumplimiento.** Las diez metas de la Ley 19.813 y los veinte indicadores
 IAAPS, cada uno con su propio corte: las metas que se nutren del REM serie P van

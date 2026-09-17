@@ -783,6 +783,162 @@ V("El cumplimiento", () => {
   return f;
 });
 
+/* ── 6 · el año ────────────────────────────────────────────────────────── */
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio",
+               "agosto","septiembre","octubre","noviembre","diciembre"];
+
+/* columnas verticales por mes: una serie de fondo y otra encima */
+function columnasMes(cfg){
+  const d = cfg.datos;
+  const angosto = innerWidth < 700;
+  const w = angosto ? 430 : 820, mb = 46, mt = 22, ml = angosto ? 38 : 52, mr = 8;
+  const h = (angosto ? 210 : 260);
+  const ah = h - mb - mt, aw = w - ml - mr;
+  const paso = aw / d.length, anchoCol = Math.min(paso * 0.62, 46);
+
+  const max = ejeBonito(Math.max(...d.map(r => Math.max(r.fondo, r.frente))) * 1.08, 4);
+  const y = v => mt + ah - (v / max.tope) * ah;
+
+  const svg = el("svg", {class:"chart", viewBox:`0 0 ${w} ${h}`, role:"img",
+                         "aria-label": cfg.etiqueta || "gráfico mensual"});
+
+  /* rejilla y eje */
+  for (let v = 0; v <= max.tope + 0.001; v += max.paso){
+    svg.appendChild(el("line",{x1:ml, y1:y(v), x2:w-mr, y2:y(v), class:"ref"}));
+    const t = el("text",{x:ml-6, y:y(v)+4, class:"ax", "text-anchor":"end"});
+    t.textContent = (v/1000).toLocaleString("es-CL",{maximumFractionDigits:0})+"k";
+    svg.appendChild(t);
+  }
+
+  d.forEach((r,i) => {
+    const cx = ml + paso*i + paso/2;
+    const g = el("g",{class:"mark", opacity: r.tenue ? 0.42 : 1});
+    /* fondo: lo ofrecido */
+    g.appendChild(el("rect",{x:cx-anchoCol/2, y:y(r.fondo), width:anchoCol,
+                             height:Math.max(1, ah-(y(r.fondo)-mt)), rx:3,
+                             fill:C.inst200}));
+    /* frente: lo agendado, más angosto para que se vea el fondo */
+    const a2 = anchoCol*0.52;
+    g.appendChild(el("rect",{x:cx-a2/2, y:y(r.frente), width:a2,
+                             height:Math.max(1, ah-(y(r.frente)-mt)), rx:2,
+                             fill: r.color || C.inst}));
+    if (r.tip) conTip(g, r.tip);
+    svg.appendChild(g);
+
+    const t = el("text",{x:cx, y:h-mb+18, class:"ax", "text-anchor":"middle"});
+    t.textContent = angosto ? r.et.slice(0,3) : r.et;
+    svg.appendChild(t);
+  });
+
+  /* franja que marca los meses de mayor demanda */
+  if (cfg.franja){
+    const [a,b] = cfg.franja;
+    const x1 = ml + paso*a, x2 = ml + paso*(b+1);
+    const rect = el("rect",{x:x1, y:mt-10, width:x2-x1, height:ah+10,
+                            fill:"#f4b400", opacity:0.09});
+    svg.insertBefore(rect, svg.firstChild);
+    const t = el("text",{x:(x1+x2)/2, y:mt-14, class:"ax", "text-anchor":"middle",
+                         fill:C.ambar, "font-weight":"700"});
+    t.textContent = cfg.franjaRot || "";
+    svg.appendChild(t);
+  }
+  return svg;
+}
+
+V("El año", () => {
+  const f = document.createDocumentFragment();
+  const M = D.agenda_mes;
+  const comp = M.filter(m => !m.parcial);
+  const frio = comp.filter(m => m.mes >= 5 && m.mes <= 8);
+  const resto = comp.filter(m => m.mes <= 4);
+
+  const agr = s => {
+    const c = s.reduce((a,m)=>a+m.citas,0), i = s.reduce((a,m)=>a+m.inasistencias,0),
+          cu = s.reduce((a,m)=>a+m.cupos,0), b = s.reduce((a,m)=>a+m.bloqueados,0),
+          n = s.length;
+    return {citas:c/n, cupos:cu/n, bloq:b/n, nsp:i/c, ocup:c/cu};
+  };
+  const A = agr(resto), B = agr(frio);
+  const var_ = (a,b) => b/a - 1;
+
+  f.appendChild(nodo(`<div class="enc">
+    <h2>El año no es plano, y la programación sí lo es</h2>
+    <p>La orientación técnica trata la estacionalidad como una contingencia
+    <em>previsible</em>, que debe integrarse de forma explícita a la
+    programación anual. Estos son los meses de ${D.meta.anio} con dato completo:
+    lo ofrecido contra lo agendado, mes a mes.</p></div>`));
+
+  const g = nodo(`<div class="grid g4"></div>`);
+  g.appendChild(kpi("Más demanda en mayo–agosto", "+"+N1(var_(A.citas,B.citas)*100)+"%",
+    `${N(A.citas)} citas al mes suben a ${N(B.citas)}`, "ambar"));
+  g.appendChild(kpi("Pero la oferta sube menos", "+"+N1(var_(A.cupos,B.cupos)*100)+"%",
+    `${N(A.cupos)} cupos al mes suben solo a ${N(B.cupos)}`, "rojo"));
+  g.appendChild(kpi("Y los bloqueos suben más", "+"+N1(var_(A.bloq,B.bloq)*100)+"%",
+    `${N(A.bloq)} al mes suben a ${N(B.bloq)}`, "rojo"));
+  g.appendChild(kpi("La inasistencia también", P1(B.nsp),
+    `Contra ${P1(A.nsp)} en enero–abril`, "ambar"));
+  f.appendChild(g);
+
+  f.appendChild(nodo(`<div class="aviso a-rojo">
+    <strong>En invierno se ofrece menos capacidad justo cuando llega más
+    demanda.</strong> La demanda sube ${N1(var_(A.citas,B.citas)*100)}%, la
+    oferta sube ${N1(var_(A.cupos,B.cupos)*100)}% y los bloqueos suben
+    ${N1(var_(A.bloq,B.bloq)*100)}%. La diferencia la absorbe el equipo: la
+    ocupación pasa de ${P1(A.ocup)} a ${P1(B.ocup)}, es decir, se atiende por
+    sobre los cupos programados mediante sobrecupo y atención espontánea.
+    <br><br>
+    Una precisión antes de sacar conclusiones: nuestro dato de «bloqueado» mezcla
+    causas —puede incluir feriado legal, capacitación y ausencia—, así que no
+    se puede afirmar que sean licencias de invierno. Lo que sí es un hecho es
+    que la capacidad ofrecida cae en el peak. <b>Desagregar el motivo del
+    bloqueo es la pregunta siguiente, y es barata de responder.</b></div>`));
+
+  f.appendChild(card("Cupos ofrecidos y citas agendadas, mes a mes",
+    "La barra clara es lo ofrecido; la sólida, lo agendado. Cuando la sólida supera a la clara, se citó por sobre el cupo.",
+    columnasMes({
+      datos: M.map(m => ({
+        et: MESES[m.mes-1], fondo: m.cupos, frente: m.citas, tenue: m.parcial,
+        color: m.mes >= 5 && m.mes <= 8 ? C.ambar : C.inst,
+        tip: `<b>${MESES[m.mes-1]}</b>${m.parcial?" <i>(mes incompleto)</i>":""}<br>
+              cupos ofrecidos ${N(m.cupos)}<br>
+              citas agendadas ${N(m.citas)}<br>
+              ocupación ${P1(m.citas/m.cupos)}<br>
+              inasistencia ${P1(m.inasistencias/m.citas)}<br>
+              <span class="l">bloqueados ${N(m.bloqueados)}</span>`
+      })),
+      franja: [4,7], franjaRot: "mayo a agosto",
+      etiqueta: "Cupos ofrecidos y citas agendadas por mes"})));
+
+  f.appendChild(card("Los dos cuatrimestres comparados", "",
+    tabla([
+      {t:"", k:"m"}, {t:"Enero–abril", k:"a", num:true},
+      {t:"Mayo–agosto", k:"b", num:true}, {t:"Variación", k:"v", num:true}
+    ], [
+      {m:"<b>Citas agendadas</b> por mes", a:N(A.citas), b:N(B.citas),
+       v:`<b>+${N1(var_(A.citas,B.citas)*100)}%</b>`},
+      {m:"<b>Cupos ofrecidos</b> por mes", a:N(A.cupos), b:N(B.cupos),
+       v:`+${N1(var_(A.cupos,B.cupos)*100)}%`},
+      {m:"<b>Cupos bloqueados</b> por mes", a:N(A.bloq), b:N(B.bloq),
+       v:`<b>+${N1(var_(A.bloq,B.bloq)*100)}%</b>`},
+      {m:"<b>Inasistencia</b>", a:P1(A.nsp), b:P1(B.nsp),
+       v:`+${N1(var_(A.nsp,B.nsp)*100)}%`},
+      {m:"<b>Ocupación</b> de la agenda", a:P1(A.ocup), b:P1(B.ocup),
+       v:`+${N1((B.ocup-A.ocup)*100)} pts`}
+    ], {nota:`Septiembre queda fuera de la comparación porque el corte del reporte es ${D.meta.corte_agenda} y el mes está incompleto; en el gráfico aparece atenuado. La ocupación sobre 100% significa que se cita por sobre los cupos programados.`})));
+
+  f.appendChild(nodo(`<div class="aviso a-oro">
+    <strong>Qué haría con esto en la programación 2027.</strong> No es contratar
+    más: es distribuir distinto lo que ya hay. Tres movimientos que la
+    orientación técnica nombra explícitamente: concentrar capacitación y feriado
+    legal en los meses de menor demanda —enero, febrero y marzo, donde hoy
+    sobra capacidad—; reforzar la agenda respiratoria de mayo a agosto con
+    horas que hoy están en esos meses de holgura; y proteger los controles
+    crónicos en invierno, porque son los primeros que se desplazan cuando entra
+    la morbilidad estacional.</div>`));
+
+  return f;
+});
+
 /* ───────────────────────────── navegación ─────────────────────────────── */
 const pest = document.getElementById("pestanas");
 const lienzo = document.getElementById("lienzo");
